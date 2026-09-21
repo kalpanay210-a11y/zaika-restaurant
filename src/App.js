@@ -1,184 +1,482 @@
-import React, { useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import MenuItemCard from './components/MenuItemCard';
-import CartModal from './components/CartModal';
-import CheckoutModal from './components/CheckoutModal';
-import OrderSuccess from './components/OrderSuccess';
-import Home from './components/Home';
-import Login from './components/Login';
-import Contact from './components/Contact';
-import Feedback from './components/Feedback';
+import React, { useEffect, useState } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
 
-function MenuPage({ menuList, onAddToCart }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+import Navbar from "./components/Navbar.jsx";
+import Home from "./components/Home.jsx";
+import Menu from "./components/Menu.jsx";
+import Gallery from "./components/Gallery.jsx";
+import Contact from "./components/Contact.jsx";
+import Feedback from "./components/Feedback.jsx";
+import Booking from "./components/Booking.jsx";
+import PartyBooking from "./components/PartyBooking.jsx";
 
-  const categories = ['All', 'Veg', 'Non-Veg', 'Sweets'];
+import Login from "./components/Login.jsx";
+import Register from "./components/Register.jsx";
+import Profile from "./components/Profile.jsx";
+import MyOrders from "./components/MyOrders.jsx";
 
-  const filteredItems = menuList.filter((item) => {
-    const matchesCategory =
-      selectedCategory === 'All' || item.category === selectedCategory;
-    const matchesSearch = item.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+import CartModal from "./components/CartModal.jsx";
+import CheckoutModal from "./components/CheckoutModal.jsx";
+import OrderSuccess from "./components/OrderSuccess.jsx";
+import AddToCartPopup from "./components/AddToCartPopup.jsx";
+import CookieConsent from "./components/CookieConsent.jsx";
+import Footer from "./components/Footer.jsx";
 
-  return (
-    <div style={styles.menuContainer}>
-      <h1 style={styles.title}>Explore Our Menu 😋</h1>
+import "./App.css";
 
-      <div style={styles.searchContainer}>
-        <input
-          type="text"
-          placeholder="Search for your favorite dish..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={styles.searchInput}
-        />
-      </div>
-
-      <div style={styles.categoryContainer}>
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            style={{
-              ...styles.categoryBtn,
-              backgroundColor:
-                selectedCategory === category ? '#E5293E' : '#FFFFFF',
-              color: selectedCategory === category ? '#FFFFFF' : '#2D3436',
-              border:
-                selectedCategory === category
-                  ? '2px solid #E5293E'
-                  : '2px solid #E2E8F0',
-            }}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
-
-      <div style={styles.grid}>
-        {filteredItems.length > 0 ? (
-          filteredItems.map((item) => (
-            <MenuItemCard key={item.id} item={item} onAddToCart={onAddToCart} />
-          ))
-        ) : (
-          <p style={styles.noResults}>No dishes found matching your search!</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const styles = {
-  menuContainer: { maxWidth: '1100px', margin: '30px auto', padding: '0 20px', textAlign: 'center' },
-  title: { fontSize: '28px', color: '#2B0910', marginBottom: '20px' },
-  searchContainer: { marginBottom: '20px' },
-  searchInput: { width: '100%', maxWidth: '500px', padding: '12px 20px', borderRadius: '25px', border: '2px solid #FFEBEB', fontSize: '15px', outline: 'none' },
-  categoryContainer: { display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '30px', flexWrap: 'wrap' },
-  categoryBtn: { padding: '8px 22px', borderRadius: '20px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' },
-  grid: { display: 'flex', justifyContent: 'center', flexWrap: 'wrap' },
-  noResults: { fontSize: '16px', color: '#888888', marginTop: '30px' },
-};
 
 function App() {
-  const [cartItems, setCartItems] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [lastOrderDetails, setLastOrderDetails] = useState(null);
-
   const navigate = useNavigate();
 
-  const menuList = [
-    { id: 1, name: 'Dosa', price: 120, image: 'dosa.jpeg', category: 'Veg' },
-    { id: 2, name: 'Paneer Butter Masala', price: 250, image: 'Paneerbutter.jpeg', category: 'Veg' },
-    { id: 3, name: 'Jalebi', price: 80, image: 'Jalebi.jpeg', category: 'Sweets' },
-    { id: 4, name: 'Chicken Tikka', price: 320, image: 'Chickentikka.jpeg', category: 'Non-Veg' },
-    { id: 5, name: 'Gajar Halwa', price: 100, image: 'Gajarhalwa.jpeg', category: 'Sweets' },
-  ];
+  const [cartItems, setCartItems] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [showOrderSuccess, setShowOrderSuccess] = useState(false);
+
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showAddPopup, setShowAddPopup] = useState(false);
+
+  const [orders, setOrders] = useState(() => {
+    try {
+      const savedOrders = localStorage.getItem("zaikaOrders");
+      return savedOrders ? JSON.parse(savedOrders) : [];
+    } catch (error) {
+      return [];
+    }
+  });
+
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem("zaikaLoggedInUser") !== null;
+  });
+
+  const [lastOrder, setLastOrder] = useState(null);
+
+
+  /* =========================
+     LOGIN STATUS
+  ========================= */
+
+  useEffect(() => {
+    const checkLogin = () => {
+      setIsLoggedIn(
+        localStorage.getItem("zaikaLoggedInUser") !== null
+      );
+    };
+
+    checkLogin();
+
+    window.addEventListener("storage", checkLogin);
+
+    return () => {
+      window.removeEventListener("storage", checkLogin);
+    };
+  }, []);
+
+
+  /* =========================
+     CART - ADD ITEM
+  ========================= */
 
   const handleAddToCart = (item) => {
-    const existingIndex = cartItems.findIndex((cartItem) => cartItem.id === item.id);
-    if (existingIndex !== -1) {
-      const updatedCart = [...cartItems];
-      updatedCart[existingIndex].quantity += 1;
-      setCartItems(updatedCart);
-    } else {
-      setCartItems([...cartItems, { ...item, quantity: 1 }]);
-    }
+    setCartItems((previousItems) => {
+      const existingItem = previousItems.find(
+        (cartItem) => cartItem.id === item.id
+      );
+
+      if (existingItem) {
+        return previousItems.map((cartItem) =>
+          cartItem.id === item.id
+            ? {
+                ...cartItem,
+                quantity: cartItem.quantity + 1,
+              }
+            : cartItem
+        );
+      }
+
+      return [
+        ...previousItems,
+        {
+          ...item,
+          quantity: 1,
+        },
+      ];
+    });
+
+    setSelectedItem(item);
+    setShowAddPopup(true);
   };
 
-  const handleIncreaseQuantity = (id) => {
-    setCartItems(cartItems.map((item) => (item.id === id ? { ...item, quantity: item.quantity + 1 } : item)));
+
+  /* =========================
+     INCREASE QUANTITY
+  ========================= */
+
+  const handleIncrease = (id) => {
+    setCartItems((previousItems) =>
+      previousItems.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              quantity: item.quantity + 1,
+            }
+          : item
+      )
+    );
   };
 
-  const handleDecreaseQuantity = (id) => {
-    setCartItems(
-      cartItems
-        .map((item) => (item.id === id ? { ...item, quantity: item.quantity - 1 } : item))
+
+  /* =========================
+     DECREASE QUANTITY
+  ========================= */
+
+  const handleDecrease = (id) => {
+    setCartItems((previousItems) =>
+      previousItems
+        .map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                quantity: item.quantity - 1,
+              }
+            : item
+        )
         .filter((item) => item.quantity > 0)
     );
   };
 
-  const handleRemoveItem = (id) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
+
+  /* =========================
+     REMOVE ITEM
+  ========================= */
+
+  const handleRemove = (id) => {
+    setCartItems((previousItems) =>
+      previousItems.filter((item) => item.id !== id)
+    );
   };
 
-  const handleProceedToCheckout = () => {
-    setIsCartOpen(false);
-    setIsCheckoutOpen(true);
+
+  /* =========================
+     OPEN CART
+  ========================= */
+
+  const handleOpenCart = () => {
+    setShowCart(true);
   };
 
-  const handleOrderSuccess = (orderDetails) => {
-    setLastOrderDetails(orderDetails);
-    setIsCheckoutOpen(false);
-    setCartItems([]); // Clear cart
-    navigate('/order-success');
+
+  /* =========================
+     CHECKOUT
+  ========================= */
+
+  const handleCheckout = () => {
+    setShowCart(false);
+
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    setShowCheckout(true);
   };
+
+
+  /* =========================
+     LOGIN
+  ========================= */
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    navigate("/");
+  };
+
+
+  /* =========================
+     REGISTER
+  ========================= */
+
+  const handleRegisterSuccess = () => {
+    navigate("/login");
+  };
+
+
+  /* =========================
+     PLACE ORDER
+  ========================= */
+
+  const handlePlaceOrder = (orderDetails) => {
+    const newOrder = {
+      id:
+        "ZAIKA-" +
+        Date.now().toString().slice(-6),
+
+      date: new Date().toLocaleDateString(),
+
+      status: "Confirmed",
+
+      ...orderDetails,
+    };
+
+    const updatedOrders = [
+      newOrder,
+      ...orders,
+    ];
+
+    setOrders(updatedOrders);
+
+    localStorage.setItem(
+      "zaikaOrders",
+      JSON.stringify(updatedOrders)
+    );
+
+    setLastOrder(newOrder);
+
+    setCartItems([]);
+
+    setShowCheckout(false);
+
+    setShowOrderSuccess(true);
+
+    navigate("/order-success");
+  };
+
+
+  /* =========================
+     CONTINUE SHOPPING
+  ========================= */
+
+  const handleContinueShopping = () => {
+    setShowOrderSuccess(false);
+    navigate("/menu");
+  };
+
+
+  /* =========================
+     CART COUNT
+  ========================= */
+
+  const cartCount = cartItems.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
+
 
   return (
-    <div>
+    <div className="app">
+
+      {/* =========================
+          NAVBAR
+      ========================= */}
+
       <Navbar
-        cartCount={cartItems.reduce((acc, item) => acc + item.quantity, 0)}
-        onOpenCart={() => setIsCartOpen(true)}
+        cartCount={cartCount}
+        onOpenCart={handleOpenCart}
       />
 
-      <CartModal
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        onIncrease={handleIncreaseQuantity}
-        onDecrease={handleDecreaseQuantity}
-        onRemove={handleRemoveItem}
-        onProceedToCheckout={handleProceedToCheckout}
-      />
 
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        cartItems={cartItems}
-        onOrderSuccess={handleOrderSuccess}
-      />
+      {/* =========================
+          MAIN ROUTES
+      ========================= */}
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route
-          path="/menu"
-          element={<MenuPage menuList={menuList} onAddToCart={handleAddToCart} />}
+      <main>
+
+        <Routes>
+
+          {/* HOME */}
+          <Route
+            path="/"
+            element={<Home />}
+          />
+
+
+          {/* MENU */}
+          <Route
+            path="/menu"
+            element={
+              <Menu
+                onAddToCart={handleAddToCart}
+              />
+            }
+          />
+
+
+          {/* GALLERY */}
+          <Route
+            path="/gallery"
+            element={<Gallery />}
+          />
+
+
+          {/* CONTACT */}
+          <Route
+            path="/contact"
+            element={<Contact />}
+          />
+
+
+          {/* FEEDBACK / REVIEWS */}
+          <Route
+            path="/reviews"
+            element={<Feedback />}
+          />
+
+
+          <Route
+            path="/feedback"
+            element={<Feedback />}
+          />
+
+
+          {/* TABLE BOOKING */}
+          <Route
+            path="/booking"
+            element={<Booking />}
+          />
+
+
+          {/* PARTY BOOKING */}
+          <Route
+            path="/party-booking"
+            element={<PartyBooking />}
+          />
+
+
+          {/* LOGIN */}
+          <Route
+            path="/login"
+            element={
+              <Login
+                onLoginSuccess={handleLoginSuccess}
+                onSwitchToRegister={() =>
+                  navigate("/register")
+                }
+              />
+            }
+          />
+
+
+          {/* REGISTER */}
+          <Route
+            path="/register"
+            element={
+              <Register
+                onRegisterSuccess={
+                  handleRegisterSuccess
+                }
+                onSwitchToLogin={() =>
+                  navigate("/login")
+                }
+              />
+            }
+          />
+
+
+          {/* PROFILE */}
+          <Route
+            path="/profile"
+            element={<Profile />}
+          />
+
+
+          {/* MY ORDERS */}
+          <Route
+            path="/orders"
+            element={
+              <MyOrders
+                orders={orders}
+              />
+            }
+          />
+
+
+          {/* ORDER SUCCESS */}
+          <Route
+            path="/order-success"
+            element={
+              <OrderSuccess
+                order={lastOrder}
+                onContinueShopping={
+                  handleContinueShopping
+                }
+              />
+            }
+          />
+
+        </Routes>
+
+      </main>
+
+
+      {/* =========================
+          FOOTER
+      ========================= */}
+
+      <Footer />
+
+
+      {/* =========================
+          CART MODAL
+      ========================= */}
+
+      {showCart && (
+        <CartModal
+          cartItems={cartItems}
+          onClose={() => setShowCart(false)}
+          onIncrease={handleIncrease}
+          onDecrease={handleDecrease}
+          onRemove={handleRemove}
+          onCheckout={handleCheckout}
         />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/feedback" element={<Feedback />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/order-success"
-          element={<OrderSuccess orderDetails={lastOrderDetails} onReset={() => setLastOrderDetails(null)} />}
+      )}
+
+
+      {/* =========================
+          CHECKOUT MODAL
+      ========================= */}
+
+      {showCheckout && (
+        <CheckoutModal
+          cartItems={cartItems}
+          onClose={() => setShowCheckout(false)}
+          onPlaceOrder={handlePlaceOrder}
+          isLoggedIn={isLoggedIn}
+          onLogin={() => {
+            setShowCheckout(false);
+            navigate("/login");
+          }}
         />
-      </Routes>
+      )}
+
+
+      {/* =========================
+          ADD TO CART POPUP
+      ========================= */}
+
+      {showAddPopup && selectedItem && (
+        <AddToCartPopup
+          item={selectedItem}
+          onClose={() => setShowAddPopup(false)}
+          onViewCart={() => {
+            setShowAddPopup(false);
+            setShowCart(true);
+          }}
+          onContinueShopping={() =>
+            setShowAddPopup(false)
+          }
+        />
+      )}
+
+
+      {/* =========================
+          COOKIE CONSENT
+      ========================= */}
+
+      <CookieConsent />
+
     </div>
   );
 }
+
 
 export default App;
