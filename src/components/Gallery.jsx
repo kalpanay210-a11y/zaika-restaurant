@@ -41,7 +41,7 @@ const galleryItems = [
     id: 6,
     title: "Family Gathering",
     category: "Celebrations",
-    image: "/family gathering.jpeg",
+    image: "/celebration.jpeg",
   },
   {
     id: 7,
